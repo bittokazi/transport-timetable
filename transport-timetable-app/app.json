@@ -1,0 +1,71 @@
+{
+  "configVersion": "v3",
+  "app": {
+    "appId": 1133017,
+    "appName": "Transport Timetable",
+    "appType": "app",
+    "version": {
+      "code": 1,
+      "name": "1.0.0"
+    },
+    "icon": "icon.png",
+    "vender": "zepp",
+    "description": "A transport timetable viewer app for Zepp devices.",
+    "developerName": "Bitto Kazi",
+    "developerEmail": "bitto.kazi@gmail.com"
+  },
+  "permissions": [
+    "data:os.device.info",
+    "device:os.local_storage",
+    "network",
+    "background_keep_alive"
+  ],
+  "runtime": {
+    "apiVersion": {
+      "compatible": "3.0.0",
+      "target": "3.0.0",
+      "minVersion": "3.0"
+    }
+  },
+  "targets": {
+    "default": {
+      "module": {
+        "page": {
+          "pages": [
+            "page/index",
+            "page/main",
+            "page/input",
+            "page/favorites",
+            "page/route",
+            "page/routes",
+            "page/date_pick",
+            "page/time_pick",
+            "page/map_view"
+          ]
+        },
+        "app-side": {
+          "path": "app-side/index"
+        },
+        "setting": {
+          "path": "setting/index"
+        }
+      },
+      "platforms": [
+        {
+          "st": "r",
+          "dw": 480
+        },
+        {
+          "st": "s",
+          "dw": 390
+        }
+      ]
+    }
+  },
+  "i18n": {
+    "en-US": {
+      "appName": "Transport Timetable"
+    }
+  },
+  "defaultLanguage": "en-US"
+}

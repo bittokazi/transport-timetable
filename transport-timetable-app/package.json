@@ -1,0 +1,29 @@
+{
+  "name": "transport-timetable-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "build:dev": "cp common/config_test.js common/config.js && ./update-version.sh && zeus build",
+    "build:prod": "cp common/config_prod.js common/config.js && ./update-version.sh && zeus build",
+    "preview:dev": "cp common/config_test.js common/config.js && ./update-version.sh && zeus preview",
+    "preview:prod": "cp common/config_prod.js common/config.js && ./update-version.sh && zeus preview",
+    "simulator:dev": "cp common/config_test.js common/config.js && ./update-version.sh && zeus dev",
+    "simulator:prod": "cp common/config_prod.js common/config.js && ./update-version.sh && zeus dev"
+  },
+  "author": "Bitto Kazi",
+  "license": "ISC",
+  "devDependencies": {
+    "@zeppos/device-types": "^3.0.0"
+  },
+  "dependencies": {
+    "@zeppos/zml": "^0.0.43",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.16.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "tailwind-merge": "^3.6.0"
+  }
+}

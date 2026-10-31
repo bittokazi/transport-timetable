@@ -1,0 +1,86 @@
+name: "Release: Android App"
+run-name: Release Version [${{ github.event.inputs.version }}] [arm64] [${{ github.event.inputs.configEnv }}]
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release branch/tag version (eg. refs/tags/*, refs/heads/main)"
+        required: true
+        default: "refs/tags"
+      configEnv:
+        description: "Select Config Environment"
+        type: choice
+        required: true
+        options:
+          - "homeLab"
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Build KVision App
+        run: cd ams-mobile-app/ams-mobile-app-base && CONFIG_ENV=${{ github.event.inputs.configEnv }} gradle buildFlavour --no-daemon
+
+      - name: Create Dist Folder
+        run: cd ams-mobile-app/capacitor-app && mkdir dist
+
+      - name: Copy KVision App Build to Capacitor Dist
+        run: cd ams-mobile-app/ams-mobile-app-base && cp -R build/dist/js/productionExecutable/* ./../capacitor-app/dist
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ams-mobile-app/capacitor-app/package-lock.json
+
+      - name: Install npm
+        run: cd ams-mobile-app/capacitor-app && npm install
+
+      - name: Sync Capacitor Android
+        run: cd ams-mobile-app/capacitor-app && npx cap sync android
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ams-mobile-app/capacitor-app/android/gradlew
+
+      - name: Build debug APK
+        working-directory: ams-mobile-app/capacitor-app/android
+        run: ./gradlew assembleDebug
+
+      - name: Remove previous APK artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARTIFACTS=$(gh api repos/${{ github.repository }}/actions/artifacts --jq '.artifacts[].id')
+          for ARTIFACT_ID in $ARTIFACTS; do
+            gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/$ARTIFACT_ID
+          done
+
+      - name: Upload latest APK (only)
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-latest-${{ github.event.inputs.configEnv }}
+          path: ams-mobile-app/capacitor-app/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30

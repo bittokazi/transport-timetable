@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Login to Zepp Transport Timetable</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f2f2f2;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                padding: 1rem;
+            }
+            .login-container {
+                background-color: #fff;
+                padding: 2rem;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                width: 100%;
+                max-width: 360px;
+            }
+            h2 {
+                text-align: center;
+                margin-bottom: 1.5rem;
+                color: #333;
+            }
+            .panel {
+                display: block;
+            }
+            .panel.hidden {
+                display: none;
+            }
+            input[type="text"],
+            input[type="password"] {
+                width: 92%;
+                padding: 0.75rem;
+                margin-bottom: 1rem;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                font-size: 1rem;
+            }
+            .remember-me {
+                display: flex;
+                align-items: center;
+                margin-bottom: 1.2rem;
+                font-size: 0.9rem;
+                color: #555;
+            }
+            .remember-me input {
+                margin-right: 0.5rem;
+                accent-color: #007BFF;
+            }
+            button {
+                width: 100%;
+                padding: 0.75rem;
+                background-color: #007BFF;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+            }
+            button:hover {
+                background-color: #0069d9;
+            }
+            button.secondary {
+                background-color: #6c757d;
+                margin-top: 0.75rem;
+            }
+            button.secondary:hover {
+                background-color: #5a6268;
+            }
+            button:disabled {
+                opacity: 0.7;
+                cursor: not-allowed;
+            }
+            .error {
+                color: red;
+                font-size: 0.9rem;
+                margin-bottom: 1rem;
+                text-align: center;
+            }
+            .info {
+                color: green;
+                font-size: 0.9rem;
+                margin-bottom: 1rem;
+                text-align: center;
+            }
+            .inline-link {
+                text-align: center;
+                margin-top: 1rem;
+            }
+            .inline-link a,
+            .inline-link button {
+                display: inline-block;
+                width: auto;
+                text-decoration: none;
+                color: #007BFF;
+                background: transparent;
+                border: none;
+                padding: 0;
+                font-size: 0.95rem;
+                cursor: pointer;
+            }
+            @media (max-width: 480px) {
+                .login-container {
+                    padding: 1.5rem;
+                }
+                h2 {
+                    font-size: 1.25rem;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="login-container">
+            <div id="login-panel" class="panel">
+                <h2>Login to Zepp Transport Timetable</h2>
+
+                {{#error}}
+                    <div class="error" id="login-error-message">{{errorMessage}}</div>
+                {{/error}}
+
+                <div id="login-status-message" class="info" style="display: none;"></div>
+
+                <form method="POST" action="/oauth/login">
+                    <input type="hidden" name="redirect" value="{{redirect}}" />
+
+                    <input id="login-username" type="text" name="username" placeholder="Email" required autofocus>
+                    <input type="password" name="password" placeholder="Password" required>
+
+                    <div class="remember-me">
+                        <input type="checkbox" id="remember" name="rememberMe" value="true">
+                        <label for="remember">Remember me</label>
+                    </div>
+
+                    <button type="submit">Login</button>
+
+                    {{#showRegister}}
+                        <button type="button" class="secondary" id="show-register-button">Create account</button>
+                    {{/showRegister}}
+
+                    {{#showBackButton}}
+                    <p class="inline-link">
+                        <a href="/app/login">Go Back</a>
+                    </p>
+                    {{/showBackButton}}
+                </form>
+            </div>
+
+            {{#showRegister}}
+                <div id="register-panel" class="panel hidden" aria-live="polite">
+                    <h2>Create Account</h2>
+
+                    <div id="register-error-message" class="error" style="display: none;"></div>
+                    <div id="register-success-message" class="info" style="display: none;"></div>
+
+                    <form id="register-form" novalidate>
+                        <input id="register-email" type="text" name="email" placeholder="Email" required>
+                        <input id="register-first-name" type="text" name="firstName" placeholder="First name" required>
+                        <input id="register-last-name" type="text" name="lastName" placeholder="Last name" required>
+                        <input id="register-password" type="password" name="password" placeholder="Password" required>
+
+                        <button type="submit" id="register-submit-button">Create Account</button>
+                        <button type="button" class="secondary" id="show-login-button">Back to Login</button>
+                    </form>
+                </div>
+            {{/showRegister}}
+        </div>
+
+        <script>
+            (function() {
+                const loginPanel = document.getElementById('login-panel');
+                const showRegisterButton = document.getElementById('show-register-button');
+                const loginStatusMessage = document.getElementById('login-status-message');
+                const registerPanel = document.getElementById('register-panel');
+                const registerForm = document.getElementById('register-form');
+                const registerSuccessMessage = document.getElementById('register-success-message');
+                const registerErrorMessage = document.getElementById('register-error-message');
+                const showLoginButton = document.getElementById('show-login-button');
+
+                function getRegisterErrorMessage(payload) {
+                    const errorCode = payload && (payload.errorCode || payload.error_code || payload.code || '');
+                    if (errorCode === 'EMAIL_EXIST') {
+                        return 'Email Already Exist';
+                    }
+                    return 'Error Occured';
+                }
+
+                function validatePassword(password) {
+                    if (password.length < 8) {
+                        return 'Password must be at least 8 characters long.';
+                    }
+                    if (!/[A-Z]/.test(password)) {
+                        return 'Password must contain at least one uppercase letter.';
+                    }
+                    if (!/[a-z]/.test(password)) {
+                        return 'Password must contain at least one lowercase letter.';
+                    }
+                    if (!/[0-9]/.test(password)) {
+                        return 'Password must contain at least one number.';
+                    }
+                    if (!/[^A-Za-z0-9]/.test(password)) {
+                        return 'Password must contain at least one special character.';
+                    }
+                    return null;
+                }
+
+                function showLoginPanel() {
+                    if (loginPanel) {
+                        loginPanel.classList.remove('hidden');
+                    }
+                    if (registerPanel) {
+                        registerPanel.classList.add('hidden');
+                    }
+                    const loginUsername = document.getElementById('login-username');
+                    if (loginUsername) {
+                        loginUsername.focus();
+                    }
+                }
+
+                function showRegisterPanel() {
+                    if (loginPanel) {
+                        loginPanel.classList.add('hidden');
+                    }
+                    if (registerPanel) {
+                        registerPanel.classList.remove('hidden');
+                    }
+                    const registerEmail = document.getElementById('register-email');
+                    if (registerEmail) {
+                        registerEmail.focus();
+                    }
+                }
+
+                if (showRegisterButton) {
+                    showRegisterButton.addEventListener('click', function() {
+                        showRegisterPanel();
+                    });
+                }
+
+                if (showLoginButton) {
+                    showLoginButton.addEventListener('click', function() {
+                        registerErrorMessage.style.display = 'none';
+                        registerErrorMessage.textContent = '';
+                        registerSuccessMessage.style.display = 'none';
+                        registerSuccessMessage.textContent = '';
+                        registerForm.reset();
+                        showLoginPanel();
+                    });
+                }
+
+                if (registerForm) {
+                    registerForm.addEventListener('submit', function(event) {
+                        event.preventDefault();
+
+                        const registerSubmitButton = document.getElementById('register-submit-button');
+                        const email = document.getElementById('register-email').value.trim();
+                        const firstName = document.getElementById('register-first-name').value.trim();
+                        const lastName = document.getElementById('register-last-name').value.trim();
+                        const password = document.getElementById('register-password').value;
+
+                        registerErrorMessage.textContent = '';
+                        registerErrorMessage.style.display = 'none';
+                        registerSuccessMessage.textContent = '';
+                        registerSuccessMessage.style.display = 'none';
+
+                        if (!email || !firstName || !lastName || !password) {
+                            registerErrorMessage.textContent = 'Please fill in all the required fields.';
+                            registerErrorMessage.style.display = 'block';
+                            return;
+                        }
+
+                        const passwordError = validatePassword(password);
+                        if (passwordError) {
+                            registerErrorMessage.textContent = passwordError;
+                            registerErrorMessage.style.display = 'block';
+                            return;
+                        }
+
+                        const originalText = registerSubmitButton.textContent;
+                        registerSubmitButton.disabled = true;
+                        registerSubmitButton.textContent = 'Creating...';
+
+                        fetch('/api/public/v1/users', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({
+                                email: email,
+                                firstName: firstName,
+                                lastName: lastName,
+                                password: password,
+                                roles: []
+                            })
+                        }).then(async function(response) {
+                            const responseText = await response.text();
+
+                            if (!response.ok) {
+                                let parsed = null;
+                                try {
+                                    parsed = JSON.parse(responseText);
+                                } catch (error) {
+                                    parsed = null;
+                                }
+                                throw new Error(getRegisterErrorMessage(parsed));
+                            }
+
+                            registerForm.reset();
+                            registerSuccessMessage.textContent = 'Account created successfully. Please login.';
+                            registerSuccessMessage.style.display = 'block';
+
+                            if (loginStatusMessage) {
+                                loginStatusMessage.textContent = 'Account created successfully. Please login.';
+                                loginStatusMessage.style.display = 'block';
+                            }
+
+                            showLoginPanel();
+                        }).catch(function(error) {
+                            registerErrorMessage.textContent = error && error.message ? error.message : 'Error Occured';
+                            registerErrorMessage.style.display = 'block';
+                        }).finally(function() {
+                            registerSubmitButton.disabled = false;
+                            registerSubmitButton.textContent = originalText;
+                        });
+                    });
+                }
+            })();
+        </script>
+    </body>
+</html>

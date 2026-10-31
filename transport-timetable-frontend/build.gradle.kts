@@ -1,0 +1,71 @@
+plugins {
+    val kotlinVersion: String by System.getProperties()
+    kotlin("plugin.serialization") version kotlinVersion
+    kotlin("multiplatform") version kotlinVersion
+    val kvisionVersion: String by System.getProperties()
+    id("io.kvision") version kvisionVersion
+    // linter
+    //id("org.jlleitschuh.gradle.ktlint") version "12.1.0"
+}
+
+version = "1.0.0-SNAPSHOT"
+group = "com.ams.kvision.frontend"
+
+// Versions
+val kvisionVersion: String by System.getProperties()
+
+kotlin {
+    js(IR) {
+        browser {
+            useEsModules()
+            commonWebpackConfig {
+                outputFileName = "main.bundle.js"
+                sourceMaps = false
+            }
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
+        }
+        binaries.executable()
+        compilerOptions {
+            target.set("es2015")
+        }
+    }
+    sourceSets["jsMain"].dependencies {
+        implementation("io.kvision:kvision:$kvisionVersion")
+        implementation("io.kvision:kvision-datetime:$kvisionVersion")
+        implementation("io.kvision:kvision-richtext:$kvisionVersion")
+        implementation("io.kvision:kvision-toastify:$kvisionVersion")
+        implementation("io.kvision:kvision-fontawesome:$kvisionVersion")
+        implementation("io.kvision:kvision-bootstrap-icons:$kvisionVersion")
+        implementation("io.kvision:kvision-i18n:$kvisionVersion")
+        implementation("io.kvision:kvision-maps:$kvisionVersion")
+        implementation("io.kvision:kvision-routing-navigo-ng:$kvisionVersion")
+        implementation("io.kvision:kvision-rest:$kvisionVersion")
+        implementation("io.kvision:kvision-jquery:$kvisionVersion")
+        implementation("io.kvision:kvision-state:$kvisionVersion")
+        implementation("io.kvision:kvision-state-flow:$kvisionVersion")
+        implementation("com.bittokazi.sonartype:kotlinKvisionSpaFramework-js:1.1.3")
+        implementation(npm("kotlin-kvision-spa-framework-resources", "1.1.3"))
+    }
+    sourceSets["jsTest"].dependencies {
+        implementation(kotlin("test-js"))
+        implementation("io.kvision:kvision-testutils:$kvisionVersion")
+    }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest>().configureEach {
+    enabled = false
+}
+
+tasks.register<Copy>("copy") {
+    dependsOn("clean", "zip")
+    from("build/dist/libs")
+    into("build/dist/js/productionExecutable/app-static")
+}
+
+tasks.register("buildFrontend") {
+    dependsOn("copy")
+}

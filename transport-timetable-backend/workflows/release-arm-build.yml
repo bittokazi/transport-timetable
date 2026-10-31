@@ -1,0 +1,77 @@
+name: "Release: ARM64"
+run-name: Release Version [${{ github.event.inputs.version }}] [arm64] [${{ github.event.inputs.configEnv }}]
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release branch/tag version (eg. refs/tags/*, refs/heads/main)"
+        required: true
+        default: "refs/tags"
+      configEnv:
+        description: "Select Config Environment"
+        type: choice
+        required: true
+        options:
+          - "home-lab"
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Image [${{ github.event.inputs.configEnv }}]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version }}
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
+
+      - name: Change wrapper permissions
+        run: chmod +x ./application-management-system-backend/gradlew
+
+      - name: Build Admin Frontend
+        run: cd app-frontend && gradle buildFrontend --no-daemon && cd ../
+
+      - name: Move cpanel.hbs into Backend
+        run: mv app-frontend/build/dist/js/productionExecutable/index.html application-management-system-backend/src/main/resources/templates/cpanel.hbs
+
+      - name: Move cpanel build into Backend
+        run: cp -r app-frontend/build/dist/js/productionExecutable/app-static application-management-system-backend/src/main/resources/static/cpanel
+
+      - name: Build Backend
+        run: cd application-management-system-backend && gradle buildFatJar --no-daemon
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log into GitLab Registry
+        uses: docker/login-action@v2
+        with:
+          registry: registry.gitlab.com
+          username: bittokazi
+          password: ${{ secrets.GITLAB_REGISTRY_PASSWORD }}
+
+      - name: Build and Push Backend Service Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./application-management-system-backend/Dockerfile
+          build-args: |
+            CONFIG_ENV=${{ github.event.inputs.configEnv }}
+          push: true
+          tags: |
+            registry.gitlab.com/bittokazi/application-management-system/full:latest
+          platforms: linux/arm64
+          cache-from: type=registry,ref=registry.gitlab.com/bittokazi/application-management-system/cache:latest
+          cache-to: type=registry,ref=registry.gitlab.com/bittokazi/application-management-system/cache:latest,mode=max

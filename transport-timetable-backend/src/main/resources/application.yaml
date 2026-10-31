@@ -1,0 +1,105 @@
+ktor:
+  application:
+    modules:
+      - com.bittokazi.watch.navigator.ApplicationKt.module
+  deployment:
+    port: 8081
+
+databases:
+  default:
+    url: jdbc:postgresql://0.0.0.0:5432/db_example
+    driver: "org.postgresql.Driver"
+    schema: "public"
+    username: postgres
+    password: password
+
+jwk:
+  key-id: "test"
+  private-key-path: certificates/test/default_private_key_pkcs8.pem
+  public-key-path: certificates/test/default_public_key.pem
+
+idp-client-config:
+  enabled: true
+  end-point: https://example.com
+
+oauth:
+  enabled: true
+  issuer: "https://example.com"
+  no-redirect-clients: []
+  session:
+    timeout: 3600 # session timeout in seconds
+    encryption-key: f0c37aa1a3b04b7aaf341d73c2b4a98c # has to be 32 character. set your own
+    signing-key: 9524eda5cceb470a8e9a8e824aa0a16b # has to be 32 character. set your own
+  clients:
+    - id: 58885419-43ce-41b9-a3ee-e7ad0ff8379e
+      consentRequired: true
+      clientId: "default-client"
+      clientSecret: "password"
+      clientName: "Transport Timetable"
+      clientType: "confidential"
+      postLogoutRedirectUri: "/app/login"
+      accessTokenValidity: 50000
+      scopes:
+        - openid
+        - profile
+        - email
+      redirectUris: []
+      grantTypes:
+        - authorization_code
+        - refresh_token
+    - id: cac60a46-9135-46f2-8fcb-051f314c41b8
+      consentRequired: true
+      clientId: "client-watch"
+      clientSecret: "secret"
+      clientName: "client-watch"
+      clientType: "public"
+      accessTokenValidity: 63072000
+      postLogoutRedirectUri: "https://example.com/app/login"
+      scopes:
+        - openid
+        - profile
+        - email
+      redirectUris:
+        - https://example.com/call/back
+      grantTypes:
+        - authorization_code
+
+app:
+  name: "Transport Timetable"
+  enable-upgrade: false
+  login-enabled: true
+  domain: https://example.com
+  modules:
+    USER:
+      enabled: true
+    CPANEL:
+      enabled: false
+    TRANSPORT:
+      enabled: true
+    PASSWORD_RESET:
+      enabled: true
+    ROLE:
+      enabled: true
+    FEEDBACK:
+      enabled: true
+
+transit-client-config:
+  enabled: true
+  base-url: https://api.transitous.org/api/v1
+
+google-maps-config:
+  enabled: true
+  api-key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+validation-config:
+  limit: 300
+
+mail-config:
+  enabled: true
+  host: smtp.com
+  port: 587
+  auth: true
+  starttls: true
+  from: "no-reply@example.com"
+  username: bitto.kazi@gmail.com
+  password: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
