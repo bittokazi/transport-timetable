@@ -29,6 +29,9 @@ jobs:
       - name: Build Admin Frontend
         run: cd transport-timetable-frontend && gradle buildFrontend --no-daemon && cd ../
 
+      - name: List Build Files
+        run: transport-timetable-frontend/build/dist/js/productionExecutable && transport-timetable-frontend/build/dist/js/productionExecutable/app-static
+
       - name: Move cpanel.hbs into Backend
         run: mv transport-timetable-frontend/build/dist/js/productionExecutable/index.html transport-timetable-backend/src/main/resources/templates/cpanel.hbs
 
