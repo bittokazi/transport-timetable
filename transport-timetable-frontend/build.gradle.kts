@@ -61,7 +61,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest>().co
 }
 
 tasks.register<Copy>("copy") {
-    dependsOn("clean", "zip")
+    dependsOn( "zip")
     from("build/dist/libs")
     into("build/dist/js/productionExecutable/app-static")
 }
