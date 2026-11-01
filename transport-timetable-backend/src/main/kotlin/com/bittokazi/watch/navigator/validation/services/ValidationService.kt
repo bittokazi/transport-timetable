@@ -10,9 +10,11 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 interface ValidationService {
-    fun count(id: Long): CallResult<MonthlyCountData, ValidityServiceError>
+    fun countUp(id: Long): CallResult<MonthlyCountData, ValidityServiceError>
 
     fun isValid(id: Long): CallResult<Boolean, ValidityServiceError>
+
+    fun getCount(id: Long): CallResult<Long, ValidityServiceError>
 }
 
 class DefaultValidationService(
@@ -41,7 +43,19 @@ class DefaultValidationService(
         } ?: CallResult.Failure(ValidityServiceError.UNPROCESSABLE_ENTITY)
     }
 
-    override fun count(id: Long): CallResult<MonthlyCountData, ValidityServiceError> {
+    override fun getCount(id: Long): CallResult<Long, ValidityServiceError> {
+        return userRepository.findOneById(id)?.let { user ->
+            val yearMonth = Utils.getCurrentYearMonth()
+            monthlyCountRepository.getByUserIdAndYearMonth(
+                user.id!!,
+                yearMonth,
+            )?.let {
+                CallResult.Success(it.requestCount)
+            } ?: CallResult.Success(0)
+        } ?: CallResult.Failure(ValidityServiceError.UNPROCESSABLE_ENTITY)
+    }
+
+    override fun countUp(id: Long): CallResult<MonthlyCountData, ValidityServiceError> {
         val yearMonth = Utils.getCurrentYearMonth()
 
         return userRepository.findOneById(id)?.let { user ->

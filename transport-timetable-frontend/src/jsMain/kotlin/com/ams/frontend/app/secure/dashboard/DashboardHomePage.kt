@@ -43,8 +43,8 @@ class DashboardHomePage() : SimplePanel() {
                                 div(className = "p-3 border border-primary-subtle bg-primary-subtle bg-opacity-10 rounded") {
                                     h6(className = "fw-bold text-primary small mb-1", content = "App Usage")
                                     p(className = "text-muted small mb-0") {
-                                        content = "You can make ${AppEngine.infoService.systemInfo?.limit} trip plan calls " +
-                                                "per month. "
+                                        content = "You have used ${AppEngine.authService.user?.usageCount ?: 0}/${AppEngine.infoService.systemInfo?.limit} trip plan calls " +
+                                                "this month."
                                     }
                                 }
                             }

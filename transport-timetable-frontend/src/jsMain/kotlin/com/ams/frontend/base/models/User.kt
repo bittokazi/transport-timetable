@@ -12,4 +12,5 @@ data class User(
     var newPassword: String? = null,
     val roles: List<Role> = listOf(),
     val image: String? = null,
+    val usageCount: Long? = null,
 )

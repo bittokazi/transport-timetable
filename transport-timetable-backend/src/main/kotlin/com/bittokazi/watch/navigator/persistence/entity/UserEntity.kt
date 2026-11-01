@@ -21,6 +21,7 @@ data class UserData(
     val newPassword: String? = null,
     var roles: List<RoleDto>?,
     val image: String? = "https://www.gravatar.com/avatar/${Utils.md5(email)}?d=identicon",
+    var usageCount: Long? = null,
 )
 
 @OptIn(ExperimentalTime::class)

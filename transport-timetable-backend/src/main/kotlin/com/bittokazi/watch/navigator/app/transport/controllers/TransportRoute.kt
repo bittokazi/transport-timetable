@@ -186,7 +186,7 @@ private suspend fun RoutingContext.handleValidPlanRequest(
         else ->
             when (val result = transportService.plan(from, to, time, arriveBy)) {
                 is CallResult.Success -> {
-                    validationService.count(
+                    validationService.countUp(
                         principal.subject?.toLongOrNull() ?: -1,
                     )
 

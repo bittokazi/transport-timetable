@@ -13,6 +13,7 @@ import com.bittokazi.watch.navigator.persistence.entity.UserData
 import com.bittokazi.watch.navigator.persistence.repository.RoleRepository
 import com.bittokazi.watch.navigator.persistence.repository.UserRepository
 import com.bittokazi.watch.navigator.validation.config.ValidationConfiguration
+import com.bittokazi.watch.navigator.validation.services.ValidationService
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
@@ -54,7 +55,8 @@ class DefaultUserService(
     val mailGeneratorService: MailGeneratorService,
     val mailService: MailService,
     val mailConfig: MailConfig,
-    val validationConfiguration: ValidationConfiguration
+    val validationConfiguration: ValidationConfiguration,
+    val validationService: ValidationService,
 ) : UserService {
     val log: Logger = LoggerFactory.getLogger(javaClass)
 
@@ -69,6 +71,13 @@ class DefaultUserService(
                     userRepository.findOneById(
                         principal.subject?.toLongOrNull() ?: -1,
                     )
+
+                if (userData?.roles?.find { it.roleKey == RoleEnum.ROLE_USER.name } != null) {
+                    when (val usageCount = validationService.getCount(userData.id!!)) {
+                        is CallResult.Success -> userData.usageCount = usageCount.outcome
+                        else -> userData.usageCount = 0
+                    }
+                }
 
                 when (userData) {
                     is UserData -> CallResult.Success(userData)
