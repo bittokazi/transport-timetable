@@ -35,17 +35,16 @@ fun Container.customDashboardFooter() {
                             )
                         }
                         span(className = "text-muted") {
-                            content = "&copy;"
+                            content = "&copy; 2026"
                             rich = true
                         }
                     }
                 }
 
                 // 2. Middle Pill: Data Sources & Attribution
-                div(className = "col-12 col-lg-5 text-center") {
+                div(className = "col-12 col-lg-2 text-center") {
                     div(className = "d-inline-flex justify-content-center align-items-center gap-1 rounded-pill border bg-light px-3 py-2 shadow-sm text-secondary text-nowrap") {
-                        i(className = "bi bi-geo-alt-fill text-primary me-1")
-                        span("Transit data provided by")
+                        span("\uD83D\uDE86 Transit data provided by")
                         link(
                             label = "Transitous",
                             url = "https://transitous.org/sources/",
@@ -55,9 +54,15 @@ fun Container.customDashboardFooter() {
                             setAttribute("rel", "noopener noreferrer")
                             setAttribute("title", "Transitous data sources and licensing information")
                         }
+                    }
+                }
 
+                div(className = "col-12 col-lg-1 text-center")
+
+                div(className = "col-12 col-lg-2 text-center") {
+                    div(className = "d-inline-flex justify-content-center align-items-center gap-1 rounded-pill border bg-light px-3 py-2 shadow-sm text-secondary text-nowrap") {
                         span(className = "d-inline-flex align-items-center gap-1 ms-1") {
-                            span("& map contributors")
+                            span("\uD83C\uDF0D Map contributors")
                             link(
                                 label = "© OpenStreetMap",
                                 url = "https://www.openstreetmap.org/copyright",

@@ -48,11 +48,9 @@ class VersionInfoBar : Div() {
             }
 
             // 2. Separate Data Attribution Bar (Added mt-1 for extra vertical separation)
-            div(className = "d-inline-flex justify-content-center align-items-center gap-1 rounded-pill bg-light border px-3 py-1.5 shadow-sm small text-secondary text-nowrap mt-1") {
+            div(className = "d-inline-flex flex-wrap justify-content-center align-items-center gap-1 rounded-pill border bg-light px-3 py-1.5 shadow-sm text-nowrap") {
                 // Map/Globe Icon
-                i(className = "bi bi-geo-alt-fill text-primary me-1")
-
-                span("Transit data provided by")
+                span("\uD83D\uDE86 Transit data provided by")
 
                 // Transitous Link
                 link(
@@ -64,10 +62,12 @@ class VersionInfoBar : Div() {
                     setAttribute("rel", "noopener noreferrer")
                     setAttribute("title", "Transitous data sources and licensing information")
                 }
+            }
 
+            div(className = "d-inline-flex flex-wrap justify-content-center align-items-center gap-1 rounded-pill border bg-light px-3 py-1.5 shadow-sm text-nowrap") {
                 // Inline span to keep attribution on a single line
                 span(className = "d-inline-flex align-items-center gap-1 ms-1") {
-                    span("& map contributors")
+                    span("\uD83C\uDF0D Map contributors")
                     span("(")
                     link(
                         label = "© OpenStreetMap",
