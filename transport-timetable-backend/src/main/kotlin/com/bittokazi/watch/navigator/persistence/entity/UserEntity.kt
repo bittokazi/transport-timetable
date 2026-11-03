@@ -45,6 +45,11 @@ class User(id: EntityID<Long>) : LongEntity(id), DtoConverter<UserData> {
                     it.toDto()
                 }
             },
+            usageCount =
+                MonthlyCounts.requestCount.lookupInReadValues(
+                    found = { it },
+                    notFound = { null },
+                ),
         )
     }
 

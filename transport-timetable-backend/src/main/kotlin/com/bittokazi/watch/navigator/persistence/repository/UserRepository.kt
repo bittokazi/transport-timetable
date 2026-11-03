@@ -2,6 +2,7 @@ package com.bittokazi.watch.navigator.persistence.repository
 
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.bittokazi.watch.navigator.database.config.MultiTenantDatabaseConfiguration
+import com.bittokazi.watch.navigator.persistence.entity.MonthlyCounts
 import com.bittokazi.watch.navigator.persistence.entity.PaginatedResponse
 import com.bittokazi.watch.navigator.persistence.entity.PaginationRequest
 import com.bittokazi.watch.navigator.persistence.entity.Roles
@@ -10,7 +11,9 @@ import com.bittokazi.watch.navigator.persistence.entity.UserData
 import com.bittokazi.watch.navigator.persistence.entity.UserRoles
 import com.bittokazi.watch.navigator.persistence.entity.Users
 import com.bittokazi.watch.navigator.persistence.entity.Users.hashedPassword
+import com.bittokazi.watch.navigator.utils.Utils
 import korlibs.time.minutes
+import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.like
@@ -66,11 +69,25 @@ class UserRepository(
     }
 
     fun getAll(paginationRequest: PaginationRequest): PaginatedResponse<UserData> {
+        log.info("[UserRepository] -> getAll() -> paginationRequest: $paginationRequest")
         return query {
+            val currentYearMonth = Utils.getCurrentYearMonth()
             getPaginatedResponse(
                 createPaginationQuery(
                     User,
-                    Users.innerJoin(UserRoles).innerJoin(Roles).select(Users.columns),
+                    Users
+                        .innerJoin(UserRoles)
+                        .innerJoin(Roles)
+                        .join(
+                            otherTable = MonthlyCounts,
+                            joinType = JoinType.LEFT,
+                            onColumn = Users.id,
+                            otherColumn = MonthlyCounts.user,
+                            additionalConstraint = {
+                                MonthlyCounts.yearMonth eq currentYearMonth
+                            },
+                        )
+                        .select(Users.columns + MonthlyCounts.requestCount),
                     paginationRequest,
                     true,
                 ) { k, v ->

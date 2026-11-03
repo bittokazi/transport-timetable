@@ -125,6 +125,9 @@ class UserListComponent : SimplePanel() {
                                 content = "Role"
                             }
                             th {
+                                content = "Usage Count"
+                            }
+                            th {
                                 content = "Actions"
                             }
                         }
@@ -147,6 +150,9 @@ class UserListComponent : SimplePanel() {
                                 }
                                 td {
                                     content = user.roles?.firstOrNull()?.name ?: ""
+                                }
+                                td {
+                                    content = "${user.usageCount?.toString() ?: "0"} / ${AppEngine.infoService.systemInfo?.limit.toString()}"
                                 }
                                 td {
                                     link(
