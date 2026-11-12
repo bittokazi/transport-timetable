@@ -1,5 +1,5 @@
 {
-  "version": "v1.3.4",
+  "version": "v1.3.5",
   "changeLogs": [
     "Initial release of Transport Timetable.",
     "Search and select origin and destination locations for route planning.",
