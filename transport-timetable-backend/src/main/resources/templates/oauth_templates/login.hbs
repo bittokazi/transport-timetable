@@ -211,6 +211,10 @@
                     return null;
                 }
 
+                function validateEmail(email) {
+                    return !/[A-Z]/.test(email) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+                }
+
                 function showLoginPanel() {
                     if (loginPanel) {
                         loginPanel.classList.remove('hidden');
@@ -259,7 +263,7 @@
                         event.preventDefault();
 
                         const registerSubmitButton = document.getElementById('register-submit-button');
-                        const email = document.getElementById('register-email').value.trim();
+                        const email = document.getElementById('register-email').value;
                         const firstName = document.getElementById('register-first-name').value.trim();
                         const lastName = document.getElementById('register-last-name').value.trim();
                         const password = document.getElementById('register-password').value;
@@ -271,6 +275,12 @@
 
                         if (!email || !firstName || !lastName || !password) {
                             registerErrorMessage.textContent = 'Please fill in all the required fields.';
+                            registerErrorMessage.style.display = 'block';
+                            return;
+                        }
+
+                        if (!validateEmail(email)) {
+                            registerErrorMessage.textContent = 'Enter a valid email address using lowercase letters only.';
                             registerErrorMessage.style.display = 'block';
                             return;
                         }
