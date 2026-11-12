@@ -199,9 +199,12 @@ class SignUpForm() : FormControl<Unit, Unit> {
         FormTextInput(
             label = "Email",
             placeholder = "Enter your email address",
-            defaultInvalidFeedback = "Missing email",
+            defaultInvalidFeedback = "Invalid email address",
         ) {
-            return@FormTextInput it?.matches(Regex("[^@]+@[^\\.]+\\..+")) ?: false
+            return@FormTextInput it?.let { email ->
+                email.none { character -> character.isUpperCase() } &&
+                    email.matches(Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"))
+            } ?: false
         }
 
     val firstName =

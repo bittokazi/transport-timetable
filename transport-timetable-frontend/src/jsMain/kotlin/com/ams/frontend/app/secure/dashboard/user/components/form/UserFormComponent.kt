@@ -236,7 +236,10 @@ class UserForm(val update: Boolean, val self: Boolean = false) : FormControl<Uni
             placeholder = "Enter email address",
             defaultInvalidFeedback = "Invalid email format",
         ) {
-            return@FormTextInput it?.matches(Regex("[^@]+@[^\\.]+\\..+")) ?: false
+            return@FormTextInput it?.let { email ->
+                email.none { character -> character.isUpperCase() } &&
+                    email.matches(Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"))
+            } ?: false
         }
 
     val roles =
@@ -417,4 +420,3 @@ enum class UserSearchForm {
     FIRST_NAME,
     LAST_NAME,
 }
-
