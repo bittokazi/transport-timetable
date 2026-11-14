@@ -9,8 +9,8 @@
     "Browse route maps and review journey information."
   ],
   "appVersion": {
-    "code": 1,
-    "name": "1.0.0",
-    "buildVersion": "app-v1.0.4"
+    "code": 2,
+    "name": "1.0.1",
+    "buildVersion": "app-v1.0.5"
   }
 }
