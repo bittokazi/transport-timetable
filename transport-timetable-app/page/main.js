@@ -2,9 +2,8 @@
 import {createWidget, widget, align, text_style, event, prop, setStatusBarVisible} from "@zos/ui";
 import { getDeviceInfo } from "@zos/device";
 import { push } from "@zos/router";
-import { Time } from "@zos/sensor";
 import { BasePage } from "@zeppos/zml/base-page";
-import {setWakeUpRelaunch} from "@zos/display";
+import { setWakeUpRelaunch } from "@zos/display";
 
 Page(
     BasePage({
@@ -12,39 +11,36 @@ Page(
       state: {
         selectedDate: "",
         selectedTime: "",
-        // Maintain persistent references to update the text layers later
         fromTextWidget: null,
         toTextWidget: null,
         dateTextWidget: null,
         timeTextWidget: null,
       },
 
-      // 1. Setup initial date/time values on creation
       onInit() {
         setWakeUpRelaunch({
           relaunch: true,
         });
         const app = getApp();
         const globalData = app.globalData || {};
-        const time = new Time();
 
-        const yyyy = time.getFullYear();
-        const mm = String(time.getMonth() + 1).padStart(2, "0");
-        const dd = String(time.getDate()).padStart(2, "0");
-        const hh = String(time.getHours()).padStart(2, "0");
-        const min = String(time.getMinutes()).padStart(2, "0");
+        // Use standard JS Date for reliable 0-indexed month handling
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, "0"); // 0-indexed: Jan=0, Nov=10 -> +1 = 11
+        const dd = String(now.getDate()).padStart(2, "0");
+        const hh = String(now.getHours()).padStart(2, "0");
+        const min = String(now.getMinutes()).padStart(2, "0");
 
         this.state.selectedDate =
             globalData["routeDate"] || `${yyyy}-${mm}-${dd}`;
         this.state.selectedTime = globalData["routeTime"] || `${hh}:${min}`;
       },
 
-      // 2. Dynamically update text properties when page regains focus
       onResume() {
         const app = getApp();
         const globalData = app.globalData || {};
 
-        // Refresh the "From" display
         if (this.state.fromTextWidget) {
           const fromSelection = globalData["fromSelection"];
           const fromName =
@@ -57,7 +53,6 @@ Page(
           });
         }
 
-        // Refresh the "To" display
         if (this.state.toTextWidget) {
           const toSelection = globalData["toSelection"];
           const toName =
@@ -68,7 +63,6 @@ Page(
           });
         }
 
-        // Refresh Date if updated in globalData
         if (globalData["routeDate"] && globalData["routeDate"] !== this.state.selectedDate) {
           this.state.selectedDate = globalData["routeDate"];
           if (this.state.dateTextWidget) {
@@ -76,7 +70,6 @@ Page(
           }
         }
 
-        // Refresh Time if updated in globalData
         if (globalData["routeTime"] && globalData["routeTime"] !== this.state.selectedTime) {
           this.state.selectedTime = globalData["routeTime"];
           if (this.state.timeTextWidget) {
@@ -96,9 +89,7 @@ Page(
 
         let currentY = Math.round(deviceWidth * 0.09);
 
-        // ----------------------------------------------------
         // 1. "Select From" Element
-        // ----------------------------------------------------
         const fromText = globalData["fromSelection"]?.name || "Select From";
 
         createWidget(widget.BUTTON, {
@@ -138,9 +129,7 @@ Page(
 
         currentY += 80;
 
-        // ----------------------------------------------------
         // 2. "Select To" Element
-        // ----------------------------------------------------
         const toText = globalData["toSelection"]?.name || "Select To";
 
         createWidget(widget.BUTTON, {
@@ -180,9 +169,7 @@ Page(
 
         currentY += 80;
 
-        // ----------------------------------------------------
-        // 3. "Date" Action Selector Button
-        // ----------------------------------------------------
+        // 3. Date & Time Action Selectors
         const splitWidth = Math.round(containerWidth / 2) - 8;
 
         createWidget(widget.BUTTON, {
@@ -220,9 +207,7 @@ Page(
           push({ url: "page/date_pick" });
         });
 
-        // ----------------------------------------------------
-        // 3.5. "Time" Action Selector Button
-        // ----------------------------------------------------
+        // Time Selector Button
         createWidget(widget.BUTTON, {
           x: containerX + splitWidth + 16,
           y: currentY,
@@ -260,9 +245,7 @@ Page(
 
         currentY += 76;
 
-        // ----------------------------------------------------
-        // 4. "Show Route" Primary Action Button
-        // ----------------------------------------------------
+        // 4. "Search" Action Button
         const actionButtonWidth = containerWidth;
         const actionButtonX = containerX;
 
