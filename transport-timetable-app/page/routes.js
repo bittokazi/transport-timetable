@@ -1,5 +1,5 @@
 // routes.js
-import hmUI, {setStatusBarVisible} from "@zos/ui";
+import hmUI, { setStatusBarVisible } from "@zos/ui";
 import { widget, align, event } from "@zos/ui";
 import { getDeviceInfo } from "@zos/device";
 import { back, push } from "@zos/router";
@@ -8,6 +8,7 @@ import { log } from "@zos/utils";
 import { setWakeUpRelaunch } from "@zos/display";
 import { iconMap } from "./lib/image_map";
 import appConfig from "./../common/config";
+import { APP_VERSION, BUILD_VERSION } from "./../common/version";
 
 // Pure text representations for testing fallback
 const textIconMap = {
@@ -35,9 +36,6 @@ Page(
             if (parsed) {
               this.state.from = parsed.from;
               this.state.to = parsed.to;
-              // ----------------------------------------------------
-              // Read incoming date and time selection params
-              // ----------------------------------------------------
               this.state.date = parsed.date || "";
               this.state.time = parsed.time || "";
             }
@@ -52,7 +50,7 @@ Page(
         let currentY = Math.round(SCREEN_H * 0.1);
 
         const margin = Math.round(SCREEN_W * 0.06);
-        const usableW = SCREEN_W - (margin * 2);
+        const usableW = SCREEN_W - margin * 2;
 
         // Current Time Display
         const timeWidget = hmUI.createWidget(widget.TEXT, {
@@ -66,7 +64,6 @@ Page(
           align_h: align.CENTER_H,
         });
 
-        // Helper to update current time
         const updateCurrentTime = () => {
           const now = new Date();
           const hh = String(now.getHours()).padStart(2, "0");
@@ -77,26 +74,28 @@ Page(
           });
         };
 
-        // Initial render
         updateCurrentTime();
-
-        // Refresh every minute
         setInterval(updateCurrentTime, 60000);
 
-        // Ensure globalData is fully initialized before checking sub-properties
         const app = getApp();
         if (!app.globalData) app.globalData = {};
 
         // Helper to calculate total duration in minutes
         function calculateDuration(start, end) {
-          const diff = new Date(end) - new Date(start);
+          const diff = new Date(end).getTime() - new Date(start).getTime();
           return Math.round(diff / 60000);
         }
 
-        // Helper to extract HH:MM safely from ISO string
+        // Helper to convert ISO timestamp (UTC or offset) into the watch's local HH:MM
         function formatTime(isoString) {
-          if (!isoString || isoString.length < 16) return "--:--";
-          return isoString.substring(11, 16);
+          if (!isoString) return "--:--";
+          const dateObj = new Date(isoString);
+          if (isNaN(dateObj.getTime())) {
+            return isoString.length >= 16 ? isoString.substring(11, 16) : "--:--";
+          }
+          const hh = String(dateObj.getHours()).padStart(2, "0");
+          const mm = String(dateObj.getMinutes()).padStart(2, "0");
+          return `${hh}:${mm}`;
         }
 
         // Helper to safely format output string based on relative minutes
@@ -116,31 +115,15 @@ Page(
           }
         }
 
-        // Helper to calculate "In X min" from now until trip start safely across timezones
+        // Helper to calculate "In X min" from now until trip start globally across timezones
         function getRelativeStartTime(startIsoString) {
           if (!startIsoString) return "";
 
           const now = new Date();
           const start = new Date(startIsoString);
+          if (isNaN(start.getTime())) return "";
 
-          let diffMs = start.getTime() - now.getTime();
-
-          if (Math.abs(diffMs) > 2000000000) {
-            const nowMins = now.getHours() * 60 + now.getMinutes();
-
-            const startParts = startIsoString.split("T")[1] || "";
-            const startH = parseInt(startParts.substring(0, 2), 10);
-            const startM = parseInt(startParts.substring(3, 5), 10);
-            const startMins = startH * 60 + startM;
-
-            let diffMins = startMins - nowMins;
-
-            if (diffMins < -600) diffMins += 1440;
-
-            return formatRelativeOutput(diffMins);
-          }
-
-          const diffMins = Math.round(diffMs / 60000);
+          const diffMins = Math.round((start.getTime() - now.getTime()) / 60000);
           return formatRelativeOutput(diffMins);
         }
 
@@ -159,12 +142,16 @@ Page(
         currentY += 55;
 
         // ----------------------------------------------------
-        // Format Date & Time into MOTIS ISO 8601 format (with URL Encoding)
+        // Convert Local Date & Time into true UTC ISO 8601 format
         // ----------------------------------------------------
         let formattedMotisTime = "";
         if (this.state.date && this.state.time) {
-          const rawIso = `${this.state.date}T${this.state.time}:00Z`;
-          formattedMotisTime = encodeURIComponent(rawIso);
+          const [year, month, day] = this.state.date.split("-").map(Number);
+          const [hour, minute] = this.state.time.split(":").map(Number);
+
+          // Builds Date in device's local timezone and converts accurately to UTC ISO string
+          const localDateObj = new Date(year, month - 1, day, hour, minute, 0);
+          formattedMotisTime = encodeURIComponent(localDateObj.toISOString());
         }
 
         // ----------------------------------------------------
@@ -188,7 +175,7 @@ Page(
           lon: this.state.to.lon,
         });
 
-        const queryStr = `from=${encodeURIComponent(fromPayload)}&to=${encodeURIComponent(toPayload)}&time=${formattedMotisTime}&arriveBy=false`;
+        const queryStr = `from=${encodeURIComponent(fromPayload)}&to=${encodeURIComponent(toPayload)}&time=${formattedMotisTime}&arriveBy=false&version=${APP_VERSION}`;
 
         // Isolated UI rendering engine
         const renderUI = (data) => {
@@ -208,7 +195,7 @@ Page(
             });
             currentY += 100;
           } else {
-            data.data.plan.itineraries.forEach((itinerary, index) => {
+            data.data.plan.itineraries.forEach((itinerary) => {
               const CARD_W = usableW;
               const CARD_H = 145;
               const CARD_X = margin;
@@ -224,7 +211,7 @@ Page(
                 press_color: 0x333333,
               });
 
-              // 2. Render Departure & Arrival Times
+              // 2. Render Local Departure & Arrival Times
               const timeString = `${formatTime(itinerary.start)} - ${formatTime(itinerary.end)}`;
               hmUI.createWidget(widget.TEXT, {
                 x: CARD_X + 20,
@@ -240,7 +227,7 @@ Page(
               // 3. Render Calculated Total Duration
               const durationMinutes = calculateDuration(
                   itinerary.start,
-                  itinerary.end,
+                  itinerary.end
               );
               hmUI.createWidget(widget.TEXT, {
                 x: CARD_X + CARD_W - 130,
@@ -254,7 +241,7 @@ Page(
                 align_v: align.CENTER_V,
               });
 
-              // 4. Horizontal Leg Timeline (Enlarged Icons & Text)
+              // 4. Horizontal Leg Timeline
               let startIconX = CARD_X + 20;
               const MAX_X = CARD_X + CARD_W - 20;
 
@@ -407,7 +394,7 @@ Page(
           renderUI(app.globalData.routeCacheData);
         } else {
           log.info(
-              "Cache miss or fresh query coordinates/time. Fetching from API endpoint...",
+              "Cache miss or fresh query coordinates/time. Fetching from API endpoint..."
           );
           this.fetchData(queryStr, (data) => {
             if (data?.data?.plan?.itineraries) {
@@ -454,5 +441,5 @@ Page(
               }
             });
       },
-    }),
+    })
 );

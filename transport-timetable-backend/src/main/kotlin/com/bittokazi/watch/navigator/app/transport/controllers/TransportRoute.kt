@@ -9,6 +9,7 @@ import com.bittokazi.watch.navigator.persistence.entity.ScopeEnum
 import com.bittokazi.watch.navigator.security.services.scopeCheck
 import com.bittokazi.watch.navigator.validation.config.ValidationConfiguration
 import com.bittokazi.watch.navigator.validation.services.ValidationService
+import com.bittokazi.watch.navigator.validation.services.VersionValidationService
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
@@ -37,6 +38,8 @@ fun Application.transportRoute() {
     val validationService: ValidationService by dependencies
 
     val validationConfiguration: ValidationConfiguration by dependencies
+
+    val versionValidationService: VersionValidationService by dependencies
 
     routing {
         authenticate {
@@ -83,6 +86,7 @@ fun Application.transportRoute() {
                         is JWTPrincipal ->
                             handlePlanRequest(
                                 validationService,
+                                versionValidationService,
                                 principal,
                                 transportService,
                                 validationConfiguration,
@@ -132,38 +136,54 @@ fun Application.transportRoute() {
 
 private suspend fun RoutingContext.handlePlanRequest(
     validationService: ValidationService,
+    versionValidationService: VersionValidationService,
     principal: JWTPrincipal,
     transportService: TransportService,
     validationConfiguration: ValidationConfiguration,
 ) {
-    validationService.isValid(principal.subject?.toLongOrNull() ?: -1)
-        .let { isValid ->
-            when (isValid) {
-                is CallResult.Success -> {
-                    when (isValid.outcome) {
-                        true -> {
-                            handleValidPlanRequest(transportService, validationService, principal)
+    val version = call.request.queryParameters["version"]
+    val isValidVersion = versionValidationService.isVersionValid(version)
+
+    when (isValidVersion) {
+        true -> {
+            validationService.isValid(principal.subject?.toLongOrNull() ?: -1)
+                .let { isValid ->
+                    when (isValid) {
+                        is CallResult.Success -> {
+                            when (isValid.outcome) {
+                                true -> {
+                                    handleValidPlanRequest(transportService, validationService, principal)
+                                }
+
+                                false ->
+                                    call.respond(
+                                        status = HttpStatusCode.UnprocessableEntity,
+                                        message =
+                                            mapOf(
+                                                "error" to "limit_reached",
+                                                "message" to "You have reached limit ${validationConfiguration.limit} " +
+                                                        "monthly trip planner calls.",
+                                            ),
+                                    )
+                            }
                         }
 
-                        false ->
-                            call.respond(
-                                status = HttpStatusCode.UnprocessableEntity,
-                                message =
-                                    mapOf(
-                                        "error" to "limit_reached",
-                                        "message" to "You have reached limit ${validationConfiguration.limit} " +
-                                            "monthly trip planner calls.",
-                                    ),
+                        is CallResult.Failure ->
+                            handleErrorResponse(
+                                CallResult.Failure<Any, TransportServiceError>(TransportServiceError.PLAN_FAILED),
                             )
                     }
                 }
-
-                is CallResult.Failure ->
-                    handleErrorResponse(
-                        CallResult.Failure<Any, TransportServiceError>(TransportServiceError.PLAN_FAILED),
-                    )
-            }
         }
+
+        false -> call.respond(
+            status = HttpStatusCode.UpgradeRequired,
+            message = mapOf(
+                "error" to "version_not_supported",
+                "message" to "Please update your app to the latest version.",
+            ),
+        )
+    }
 }
 
 private suspend fun RoutingContext.handleValidPlanRequest(

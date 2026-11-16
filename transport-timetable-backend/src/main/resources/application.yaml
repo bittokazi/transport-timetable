@@ -93,6 +93,9 @@ google-maps-config:
 
 validation-config:
   limit: 300
+  version:
+    enabled: true
+    min: 1.0.2
 
 mail-config:
   enabled: true
