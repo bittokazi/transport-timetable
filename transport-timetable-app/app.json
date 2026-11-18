@@ -5,8 +5,8 @@
     "appName": "Transport Timetable",
     "appType": "app",
     "version": {
-      "code": 3,
-      "name": "1.0.2"
+      "code": 4,
+      "name": "1.0.3"
     },
     "icon": "icon.png",
     "vender": "zepp",
@@ -18,7 +18,8 @@
     "data:os.device.info",
     "device:os.local_storage",
     "network",
-    "background_keep_alive"
+    "background_keep_alive",
+    "device:os.geolocation"
   ],
   "runtime": {
     "apiVersion": {

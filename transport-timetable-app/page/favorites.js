@@ -1,5 +1,5 @@
 // page/favorites.js
-import {createWidget, widget, align, prop, setStatusBarVisible} from "@zos/ui";
+import { createWidget, widget, align, prop, setStatusBarVisible } from "@zos/ui";
 import { BasePage } from "@zeppos/zml/base-page";
 import { back } from "@zos/router";
 import { LocalStorage } from "@zos/storage";
@@ -132,24 +132,28 @@ Page(
         let inputText = "";
         let searchScrollOffset = 0;
         let favScrollOffset = 0;
+        let isNumericMode = false;
 
         let dynamicWidgets = [];
+        let keyboardWidgets = [];
         let currentSuggestionsData = [];
 
         // Retrieve dynamic device screen dimensions
         const { width: SCREEN_W, height: SCREEN_H } = getDeviceInfo();
+        const VISIBLE_ROWS = 3;
         const ITEM_H = 40;
+        const BTN_H = 36;
 
-        // Responsive layout calculations
-        const LIST_TOP = Math.round(SCREEN_H * 0.13);
-        const LIST_H = Math.round(SCREEN_H * 0.31);
+        // Responsive layout calculations (snapped to exact item rows)
+        const LIST_TOP = Math.round(SCREEN_H * 0.14);
+        const LIST_H = VISIBLE_ROWS * ITEM_H - 4;
         const LIST_LEFT = Math.round(SCREEN_W * 0.11);
         const LIST_W = SCREEN_W - LIST_LEFT - Math.round(SCREEN_W * 0.16);
         const SCROLL_BTN_X = SCREEN_W - Math.round(SCREEN_W * 0.18);
 
         const inputWidget = createWidget(widget.TEXT, {
           x: Math.round(SCREEN_W * 0.08),
-          y: Math.round(SCREEN_H * 0.05),
+          y: Math.round(SCREEN_H * 0.04),
           w: SCREEN_W - Math.round(SCREEN_W * 0.16),
           h: 36,
           text_size: 20,
@@ -166,6 +170,15 @@ Page(
             }
           });
           dynamicWidgets = [];
+        }
+
+        function clearKeyboardWidgets() {
+          keyboardWidgets.forEach((widgetItem) => {
+            if (widgetItem && typeof widgetItem.remove === "function") {
+              widgetItem.remove();
+            }
+          });
+          keyboardWidgets = [];
         }
 
         function renderContent() {
@@ -188,7 +201,7 @@ Page(
             if (!currentSuggestionsData.length) {
               const emptyText = createWidget(widget.TEXT, {
                 x: LIST_LEFT,
-                y: LIST_TOP + 50,
+                y: LIST_TOP + 45,
                 w: LIST_W,
                 h: 30,
                 text: "Searching...",
@@ -200,7 +213,7 @@ Page(
               return;
             }
 
-            const maxScroll = Math.max(0, currentSuggestionsData.length * ITEM_H - LIST_H);
+            const maxScroll = Math.max(0, (currentSuggestionsData.length - VISIBLE_ROWS) * ITEM_H);
             if (searchScrollOffset < 0) searchScrollOffset = 0;
             if (searchScrollOffset > maxScroll) searchScrollOffset = maxScroll;
 
@@ -208,13 +221,13 @@ Page(
               const baseY = LIST_TOP + i * ITEM_H;
               const y = baseY - searchScrollOffset;
 
-              if (y < LIST_TOP - 10 || y > LIST_TOP + LIST_H - 10) return;
+              if (y < LIST_TOP || y + BTN_H > LIST_TOP + LIST_H) return;
 
               const resultButton = createWidget(widget.BUTTON, {
                 x: LIST_LEFT,
                 y,
                 w: LIST_W,
-                h: 36,
+                h: BTN_H,
                 radius: 8,
                 text: itemObj.name,
                 text_size: 14,
@@ -241,7 +254,7 @@ Page(
                 x: SCROLL_BTN_X,
                 y: LIST_TOP,
                 w: Math.round(SCREEN_W * 0.1),
-                h: 36,
+                h: BTN_H,
                 radius: 6,
                 text: "▲",
                 text_size: 16,
@@ -254,9 +267,9 @@ Page(
               });
               const downBtn = createWidget(widget.BUTTON, {
                 x: SCROLL_BTN_X,
-                y: LIST_TOP + LIST_H - 36,
+                y: LIST_TOP + LIST_H - BTN_H,
                 w: Math.round(SCREEN_W * 0.1),
-                h: 36,
+                h: BTN_H,
                 radius: 6,
                 text: "▼",
                 text_size: 16,
@@ -270,14 +283,13 @@ Page(
               if (upBtn) dynamicWidgets.push(upBtn);
               if (downBtn) dynamicWidgets.push(downBtn);
             }
-
           } else {
             // --- RENDER FAVORITES LIST WITH REMOVE BUTTONS ---
             const favorites = refPage.loadFavorites();
             if (!favorites.length) {
               const emptyText = createWidget(widget.TEXT, {
                 x: LIST_LEFT,
-                y: LIST_TOP + 50,
+                y: LIST_TOP + 45,
                 w: LIST_W,
                 h: 30,
                 text: "No favorite places saved",
@@ -289,7 +301,7 @@ Page(
               return;
             }
 
-            const maxScroll = Math.max(0, favorites.length * ITEM_H - LIST_H);
+            const maxScroll = Math.max(0, (favorites.length - VISIBLE_ROWS) * ITEM_H);
             if (favScrollOffset < 0) favScrollOffset = 0;
             if (favScrollOffset > maxScroll) favScrollOffset = maxScroll;
 
@@ -300,13 +312,13 @@ Page(
               const baseY = LIST_TOP + index * ITEM_H;
               const y = baseY - favScrollOffset;
 
-              if (y < LIST_TOP - 10 || y > LIST_TOP + LIST_H - 10) return;
+              if (y < LIST_TOP || y + BTN_H > LIST_TOP + LIST_H) return;
 
               const selectButton = createWidget(widget.BUTTON, {
                 x: LIST_LEFT,
                 y,
                 w: selectBtnW,
-                h: 36,
+                h: BTN_H,
                 radius: 8,
                 text: favorite.name,
                 text_size: 13,
@@ -319,7 +331,7 @@ Page(
                 x: LIST_LEFT + selectBtnW + 6,
                 y,
                 w: removeBtnW,
-                h: 36,
+                h: BTN_H,
                 radius: 8,
                 text: "Remove",
                 text_size: 12,
@@ -340,7 +352,7 @@ Page(
                 x: SCROLL_BTN_X,
                 y: LIST_TOP,
                 w: Math.round(SCREEN_W * 0.1),
-                h: 36,
+                h: BTN_H,
                 radius: 6,
                 text: "▲",
                 text_size: 16,
@@ -353,9 +365,9 @@ Page(
               });
               const downBtn = createWidget(widget.BUTTON, {
                 x: SCROLL_BTN_X,
-                y: LIST_TOP + LIST_H - 36,
+                y: LIST_TOP + LIST_H - BTN_H,
                 w: Math.round(SCREEN_W * 0.1),
-                h: 36,
+                h: BTN_H,
                 radius: 6,
                 text: "▼",
                 text_size: 16,
@@ -409,45 +421,69 @@ Page(
         }
 
         // Keyboard sizing and positioning packed right under the list area
-        const keyboardStartY = Math.round(SCREEN_H * 0.47);
-        const rowHeight = Math.round(SCREEN_H * 0.082);
+        const keyboardStartY = Math.round(SCREEN_H * 0.45);
+        const rowHeight = Math.round(SCREEN_H * 0.075);
         const keyW = Math.floor((SCREEN_W - 48) / 9);
-        const keyH = Math.round(rowHeight * 0.82);
+        const keyH = Math.round(rowHeight * 0.85);
 
         function centerRow(keys) {
           return Math.round((SCREEN_W - (keys.length * keyW + (keys.length - 1) * 3)) / 2);
         }
 
-        const rows = [
-          { keys: ["Q", "W", "E", "R", "T", "Y", "U", "I", "O"], y: keyboardStartY },
-          { keys: ["P", "A", "S", "D", "F", "G", "H", "J", "K"], y: keyboardStartY + rowHeight },
-          { keys: ["L", "Z", "X", "C", "V", "B", "N", "M"], y: keyboardStartY + rowHeight * 2 },
-        ];
+        function renderKeyboard() {
+          clearKeyboardWidgets();
 
-        rows.forEach((row) => {
-          const startX = centerRow(row.keys);
-          row.keys.forEach((key, index) => {
-            createWidget(widget.BUTTON, {
-              x: startX + index * (keyW + 3),
-              y: row.y,
-              w: keyW,
-              h: keyH,
-              radius: 6,
-              text: key,
-              text_size: 15,
-              normal_color: 0x2d2d2d,
-              press_color: 0x444444,
-              click_func: () => handleKeyInput(key),
+          const rows = isNumericMode
+              ? [
+                { keys: ["1", "2", "3", "4", "5", "6", "7", "8", "9"], y: keyboardStartY },
+                { keys: ["0", "-", "/", ":", ".", ",", "@", "(", ")"], y: keyboardStartY + rowHeight },
+                { keys: ["ABC", "_", "#", "+", "&", "!", "?", "00", ""], y: keyboardStartY + rowHeight * 2 },
+              ]
+              : [
+                { keys: ["Q", "W", "E", "R", "T", "Y", "U", "I", "O"], y: keyboardStartY },
+                { keys: ["P", "A", "S", "D", "F", "G", "H", "J", "K"], y: keyboardStartY + rowHeight },
+                { keys: ["?123", "L", "Z", "X", "C", "V", "B", "N", "M"], y: keyboardStartY + rowHeight * 2 },
+              ];
+
+          rows.forEach((row) => {
+            const startX = centerRow(row.keys);
+            row.keys.forEach((key, index) => {
+              if (key === "") return; // Skip empty placeholder spacer
+
+              const isToggle = key === "?123" || key === "ABC";
+              const btn = createWidget(widget.BUTTON, {
+                x: startX + index * (keyW + 3),
+                y: row.y,
+                w: keyW,
+                h: keyH,
+                radius: 6,
+                text: key,
+                text_size: isToggle ? 10 : 14,
+                normal_color: isToggle ? 0x1f3c5c : 0x2d2d2d,
+                press_color: isToggle ? 0x2f557f : 0x444444,
+                click_func: () => {
+                  if (key === "?123") {
+                    isNumericMode = true;
+                    renderKeyboard();
+                  } else if (key === "ABC") {
+                    isNumericMode = false;
+                    renderKeyboard();
+                  } else {
+                    handleKeyInput(key);
+                  }
+                },
+              });
+              if (btn) keyboardWidgets.push(btn);
             });
           });
-        });
+        }
 
-        // Control Row (BACK, SPACE, DEL) positioned immediately after the character keyboard rows
-        const controlRowY = keyboardStartY + rowHeight * 3 + 2;
+        // Control Row (BACK, SPACE, DEL) positioned safely below the 3 keyboard rows
+        const controlRowY = keyboardStartY + rowHeight * 3 + 4;
         const controlH = Math.round(rowHeight * 0.85);
 
         const btnMargin = Math.round(SCREEN_W * 0.08);
-        const usableWidth = SCREEN_W - (btnMargin * 2);
+        const usableWidth = SCREEN_W - btnMargin * 2;
         const backW = Math.round(usableWidth * 0.22);
         const delW = Math.round(usableWidth * 0.22);
         const spaceW = usableWidth - backW - delW - 8;
@@ -499,6 +535,7 @@ Page(
           },
         });
 
+        renderKeyboard();
         renderContent();
       },
     }),
