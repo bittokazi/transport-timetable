@@ -18,7 +18,8 @@
     "data:os.device.info",
     "device:os.local_storage",
     "network",
-    "background_keep_alive"
+    "background_keep_alive",
+    "device:os.geolocation"
   ],
   "runtime": {
     "apiVersion": {
