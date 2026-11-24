@@ -1,5 +1,5 @@
 // route.js
-import hmUI, {setStatusBarVisible} from "@zos/ui";
+import hmUI, { setStatusBarVisible } from "@zos/ui";
 import { createWidget, widget, align, prop, event } from "@zos/ui";
 import { log, px } from "@zos/utils";
 import { getDeviceInfo } from "@zos/device";
@@ -7,10 +7,14 @@ import { BasePage } from "@zeppos/zml/base-page";
 import { back, push } from "@zos/router";
 import { setWakeUpRelaunch } from "@zos/display";
 import { display } from "@zos/display";
+import { LocalStorage } from "@zos/storage";
+import { showToast } from "@zos/interaction";
 
 import { iconMap } from "./lib/image_map";
 
-// --- Helper Functions for Time Parsing ---
+const SAVED_TRIPS_KEY = "saved_trips";
+
+// --- Helper Functions for Time & Date Parsing ---
 function formatTime(isoString) {
   if (!isoString) return "--:--";
   try {
@@ -20,6 +24,17 @@ function formatTime(isoString) {
     return `${hours}:${minutes}`;
   } catch (e) {
     return "--:--";
+  }
+}
+
+function formatDate(dateObj = new Date()) {
+  try {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dateObj.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  } catch (e) {
+    return "";
   }
 }
 
@@ -40,9 +55,15 @@ Page(
     BasePage({
       state: {},
       onInit(param) {
-        setWakeUpRelaunch({
-          relaunch: true,
-        });
+        try {
+          setWakeUpRelaunch({
+            relaunch: true,
+          });
+        } catch (e) {
+          log.error("Failed to set wake up relaunch", e);
+        }
+
+        this.state.hideSaveButton = false;
 
         if (param) {
           try {
@@ -51,11 +72,80 @@ Page(
               this.state.trip = parsed.trip;
               this.state.from = parsed.from;
               this.state.to = parsed.to;
+              this.state.hideSaveButton = Boolean(
+                  parsed.fromSaved || parsed.hideSaveButton
+              );
             }
           } catch (e) {
             log.error("Failed to parse navigation parameters", e);
           }
         }
+      },
+      loadSavedTrips() {
+        try {
+          const storage = new LocalStorage();
+          const saved = storage.getItem(SAVED_TRIPS_KEY);
+          if (!saved) return [];
+
+          const parsed = typeof saved === "string" ? JSON.parse(saved) : saved;
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          log.error("Failed to load saved trips:", e);
+          return [];
+        }
+      },
+      persistSavedTrips(list) {
+        try {
+          const storage = new LocalStorage();
+          storage.setItem(SAVED_TRIPS_KEY, JSON.stringify(list));
+        } catch (e) {
+          log.error("Failed to persist saved trips:", e);
+        }
+      },
+      getTripKey(entry) {
+        if (!entry) return "";
+        const trip = entry.trip || entry;
+        if (trip && trip.id) return `id:${String(trip.id)}`;
+
+        const fromName = (entry.from?.name || "").trim().toLowerCase();
+        const toName = (entry.to?.name || "").trim().toLowerCase();
+        const start = trip?.start || "";
+        const end = trip?.end || "";
+        return `route:${fromName}|${toName}|${start}|${end}`;
+      },
+      saveCurrentTrip() {
+        const trip = this.state.trip;
+        if (!trip) return { ok: false, reason: "missing" };
+
+        const now = new Date();
+        const fromObj = this.state.from || {
+          name: trip.legs?.[0]?.from?.name || "Origin",
+        };
+        const toObj = this.state.to || {
+          name: trip.legs?.[trip.legs.length - 1]?.to?.name || "Destination",
+        };
+
+        const newEntry = {
+          savedId: `${now.getTime()}_${Math.random().toString(36).slice(2, 7)}`,
+          savedAt: now.toISOString(),
+          savedDate: formatDate(now),
+          savedTime: formatTime(now.toISOString()),
+          from: fromObj,
+          to: toObj,
+          trip,
+        };
+
+        const list = this.loadSavedTrips();
+        const newKey = this.getTripKey(newEntry);
+        const alreadyExists = list.some((item) => this.getTripKey(item) === newKey);
+
+        if (alreadyExists) {
+          return { ok: false, reason: "duplicate" };
+        }
+
+        list.unshift(newEntry);
+        this.persistSavedTrips(list);
+        return { ok: true, entry: newEntry };
       },
       build() {
         setStatusBarVisible(false);
@@ -269,6 +359,34 @@ Page(
         // ==========================================
         const btnW = Math.min(360, usableW);
         const btnX = Math.round((SCREEN_W - btnW) / 2);
+
+        // SAVE TRIP Action Button (above View Map, hidden when opened from Saved Trips)
+        if (!refSelf.state.hideSaveButton) {
+          hmUI.createWidget(widget.BUTTON, {
+            x: btnX,
+            y: currentY,
+            w: btnW,
+            h: 62,
+            radius: 31,
+            text: "Save Trip",
+            text_size: 22,
+            normal_color: 0x1e88e5,
+            press_color: 0x1565c0,
+            color: 0xffffff,
+            click_func: () => {
+              const result = refSelf.saveCurrentTrip();
+              if (result.ok) {
+                showToast({ content: "Saved Trip" });
+              } else if (result.reason === "duplicate") {
+                showToast({ content: "Already Saved" });
+              } else {
+                showToast({ content: "No Trip Data" });
+              }
+            },
+          });
+
+          currentY += 75;
+        }
 
         // VIEW MAP Action Button
         hmUI.createWidget(widget.BUTTON, {

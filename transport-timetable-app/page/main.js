@@ -9,7 +9,6 @@ import {
   setStatusBarVisible,
 } from "@zos/ui";
 import { getDeviceInfo } from "@zos/device";
-import { getPackageInfo } from "@zos/app";
 import { push } from "@zos/router";
 import { BasePage } from "@zeppos/zml/base-page";
 import { setWakeUpRelaunch } from "@zos/display";
@@ -497,16 +496,38 @@ Page(
           }
         });
 
+        // 5. Side-by-Side "Saved Trips" & "Manage Favorites" Buttons
+        const secondaryGap = 12;
+        const secondaryBtnW = Math.round((containerWidth - secondaryGap) / 2);
+        const secondaryRowY = currentY + 74;
+
+        const savedTripsButton = createWidget(widget.BUTTON, {
+          x: containerX,
+          y: secondaryRowY,
+          w: secondaryBtnW,
+          h: 50,
+          radius: 20,
+          normal_color: 0x15432b,
+          press_color: 0x1e5e3d,
+          text: "Saved Trips",
+          text_size: 16,
+          color: 0x00e676,
+        });
+
+        savedTripsButton.addEventListener(event.CLICK_DOWN, () => {
+          push({ url: "page/saved_trips" });
+        });
+
         const favoritesButton = createWidget(widget.BUTTON, {
-          x: actionButtonX,
-          y: currentY + 74,
-          w: actionButtonWidth,
+          x: containerX + secondaryBtnW + secondaryGap,
+          y: secondaryRowY,
+          w: secondaryBtnW,
           h: 50,
           radius: 20,
           normal_color: 0x1f3c5c,
           press_color: 0x2f557f,
-          text: "Manage Favorites",
-          text_size: 20,
+          text: "Favorites",
+          text_size: 16,
           color: 0xffffff,
         });
 
@@ -514,12 +535,12 @@ Page(
           push({ url: "page/favorites" });
         });
 
-        // 5. App Version Number at the Bottom
+        // 6. App Version Number at the Bottom
         const versionStr = `v${APP_VERSION}`;
 
         createWidget(widget.TEXT, {
           x: containerX,
-          y: currentY + 134,
+          y: secondaryRowY + 58,
           w: containerWidth,
           h: 32,
           color: 0xffffff,

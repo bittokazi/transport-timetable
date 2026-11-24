@@ -41,7 +41,8 @@
             "page/routes",
             "page/date_pick",
             "page/time_pick",
-            "page/map_view"
+            "page/map_view",
+            "page/saved_trips"
           ]
         },
         "app-side": {
