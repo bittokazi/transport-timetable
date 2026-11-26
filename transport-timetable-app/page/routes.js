@@ -177,8 +177,78 @@ Page(
 
         const queryStr = `from=${encodeURIComponent(fromPayload)}&to=${encodeURIComponent(toPayload)}&time=${formattedMotisTime}&arriveBy=false&version=${APP_VERSION}`;
 
+        let spinnerTimer = null;
+        let loadingArc = null;
+        let loadingText = null;
+
+        const showLoading = () => {
+          if (loadingArc || loadingText) return;
+
+          const spinnerSize = 54;
+          const spinnerX = Math.round((SCREEN_W - spinnerSize) / 2);
+          const spinnerY = currentY + 45;
+          const lineWidth = 6;
+          const sweep = 270;
+          let angle = 0;
+
+          loadingArc = hmUI.createWidget(widget.ARC, {
+            x: spinnerX,
+            y: spinnerY,
+            w: spinnerSize,
+            h: spinnerSize,
+            start_angle: angle,
+            end_angle: angle + sweep,
+            color: 0x00ff88,
+            line_width: lineWidth,
+          });
+
+          loadingText = hmUI.createWidget(widget.TEXT, {
+            x: margin,
+            y: spinnerY + spinnerSize + 14,
+            w: usableW,
+            h: 32,
+            text: "Loading...",
+            text_size: 20,
+            color: 0xaaaaaa,
+            align_h: align.CENTER_H,
+          });
+
+          spinnerTimer = setInterval(() => {
+            angle = (angle + 30) % 360;
+            if (loadingArc) {
+              loadingArc.setProperty(hmUI.prop.MORE, {
+                x: spinnerX,
+                y: spinnerY,
+                w: spinnerSize,
+                h: spinnerSize,
+                start_angle: angle,
+                end_angle: angle + sweep,
+                color: 0x00ff88,
+                line_width: lineWidth,
+              });
+            }
+          }, 80);
+        };
+
+        const hideLoading = () => {
+          if (spinnerTimer) {
+            clearInterval(spinnerTimer);
+            spinnerTimer = null;
+          }
+          if (loadingArc) {
+            hmUI.deleteWidget(loadingArc);
+            loadingArc = null;
+          }
+          if (loadingText) {
+            hmUI.deleteWidget(loadingText);
+            loadingText = null;
+          }
+        };
+
         // Isolated UI rendering engine
         const renderUI = (data) => {
+          hideLoading();
+
           if (
               !data?.data?.plan?.itineraries ||
               data.data.plan.itineraries.length === 0
@@ -396,6 +466,7 @@ Page(
           log.info(
               "Cache miss or fresh query coordinates/time. Fetching from API endpoint..."
           );
+          showLoading();
           this.fetchData(queryStr, (data) => {
             if (data?.data?.plan?.itineraries) {
               app.globalData.routeCacheData = data;
