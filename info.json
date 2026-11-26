@@ -1,16 +1,17 @@
 {
-  "version": "v1.3.6",
+  "version": "v1.3.7",
   "changeLogs": [
-    "Initial release of Transport Timetable.",
+    "Current Location added.",
     "Search and select origin and destination locations for route planning.",
     "Choose departure date and time for trip queries.",
     "View available transport routes and trip details.",
     "Save favorite places for quick reuse in future searches.",
-    "Browse route maps and review journey information."
+    "Browse route maps and review journey information.",
+    "Save trips."
   ],
   "appVersion": {
-    "code": 5,
-    "name": "1.0.4",
-    "buildVersion": "app-v1.0.8"
+    "code": 6,
+    "name": "1.0.5",
+    "buildVersion": "app-v1.0.9"
   }
 }
